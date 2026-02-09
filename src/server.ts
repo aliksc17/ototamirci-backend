@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import pool from './config/database';
 import authRoutes from './routes/auth.routes';
 import shopRoutes from './routes/shop.routes';
 import appointmentRoutes from './routes/appointment.routes';
@@ -69,14 +70,27 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`
+const startServer = async () => {
+  // Run auto-migrations on startup
+  try {
+    await pool.query(`ALTER TABLE shops ADD COLUMN IF NOT EXISTS phone_visible BOOLEAN DEFAULT true`);
+    await pool.query(`ALTER TABLE shops ADD COLUMN IF NOT EXISTS working_hours JSONB DEFAULT NULL`);
+    console.log('✅ Database migrations checked');
+  } catch (err) {
+    console.error('⚠️ Migration check failed (non-fatal):', err);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`
 ╔════════════════════════════════════════╗
 ║   🚗 OTOTAMIRCI API SERVER             ║
 ║   🚀 Server running on port ${PORT}      ║
 ║   📍 Environment: ${process.env.NODE_ENV || 'development'}         ║
 ╚════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+};
+
+startServer();
 
 export default app;

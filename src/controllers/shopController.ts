@@ -17,13 +17,16 @@ export const getNearbyShops = async (req: AuthRequest, res: Response) => {
     let query = `
       SELECT 
         s.id, s.owner_id, s.name, s.latitude, s.longitude, s.address, 
-        s.phone, s.phone_visible, s.image_url, s.rating, s.is_open, s.working_hours,
+        s.phone, s.image_url, s.rating, s.is_open, s.working_hours,
+        COALESCE(s.phone_visible, true) as phone_visible,
         array_agg(DISTINCT sc.category) FILTER (WHERE sc.category IS NOT NULL) as categories,
         (
           6371 * acos(
-            cos(radians($1)) * cos(radians(s.latitude)) *
-            cos(radians(s.longitude) - radians($2)) +
-            sin(radians($1)) * sin(radians(s.latitude))
+            LEAST(1.0, GREATEST(-1.0,
+              cos(radians($1)) * cos(radians(s.latitude)) *
+              cos(radians(s.longitude) - radians($2)) +
+              sin(radians($1)) * sin(radians(s.latitude))
+            ))
           )
         ) AS distance
       FROM shops s
@@ -31,9 +34,11 @@ export const getNearbyShops = async (req: AuthRequest, res: Response) => {
       GROUP BY s.id
       HAVING (
         6371 * acos(
-          cos(radians($1)) * cos(radians(s.latitude)) *
-          cos(radians(s.longitude) - radians($2)) +
-          sin(radians($1)) * sin(radians(s.latitude))
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians($1)) * cos(radians(s.latitude)) *
+            cos(radians(s.longitude) - radians($2)) +
+            sin(radians($1)) * sin(radians(s.latitude))
+          ))
         )
       ) < $3
     `;
@@ -54,11 +59,12 @@ export const getNearbyShops = async (req: AuthRequest, res: Response) => {
       success: true,
       data: result.rows
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get nearby shops error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      detail: process.env.NODE_ENV !== 'production' ? error?.message : undefined
     });
   }
 };
