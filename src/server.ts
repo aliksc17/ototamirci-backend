@@ -14,6 +14,7 @@ const PORT = process.env.PORT || 5000;
 // CORS Origins
 const allowedOrigins: string[] = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:5173',
   process.env.FRONTEND_URL,
 ].filter((origin): origin is string => Boolean(origin));
