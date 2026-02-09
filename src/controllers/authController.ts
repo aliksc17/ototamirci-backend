@@ -6,7 +6,21 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { 
+      name, 
+      email, 
+      password, 
+      role, 
+      phone, 
+      phone_visible = true,
+      // Mechanic-specific fields
+      shop_name,
+      address,
+      latitude,
+      longitude,
+      categories,
+      working_hours
+    } = req.body;
 
     // Check if user already exists
     const existingUser = await pool.query(
@@ -26,13 +40,35 @@ export const register = async (req: Request, res: Response) => {
 
     // Create user
     const result = await pool.query(
-      `INSERT INTO users (name, email, password_hash, role, phone)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, email, role, avatar_url, phone, created_at`,
-      [name, email, hashedPassword, role, phone]
+      `INSERT INTO users (name, email, password_hash, role, phone, phone_visible)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, email, role, avatar_url, phone, phone_visible, created_at`,
+      [name, email, hashedPassword, role, phone, phone_visible]
     );
 
     const user = result.rows[0];
+
+    // If mechanic, create shop
+    if (role === 'mechanic' && shop_name && address && latitude && longitude) {
+      const shopResult = await pool.query(
+        `INSERT INTO shops (owner_id, name, latitude, longitude, address, phone, working_hours, rating, is_open)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 0.0, true)
+         RETURNING id`,
+        [user.id, shop_name, latitude, longitude, address, phone, working_hours ? JSON.stringify(working_hours) : null]
+      );
+
+      const shopId = shopResult.rows[0].id;
+
+      // Add shop categories
+      if (categories && Array.isArray(categories)) {
+        for (const category of categories) {
+          await pool.query(
+            'INSERT INTO shop_categories (shop_id, category) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [shopId, category]
+          );
+        }
+      }
+    }
 
     // Generate token
     const token = generateToken({
@@ -50,7 +86,8 @@ export const register = async (req: Request, res: Response) => {
           email: user.email,
           role: user.role,
           avatar_url: user.avatar_url,
-          phone: user.phone
+          phone: user.phone,
+          phone_visible: user.phone_visible
         },
         token
       }
