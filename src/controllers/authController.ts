@@ -61,10 +61,20 @@ export const register = async (req: Request, res: Response) => {
 
       // Add shop categories
       if (categories && Array.isArray(categories)) {
+        // Map frontend category IDs to database values
+        const categoryMap: Record<string, string> = {
+          'motor': 'Motor',
+          'kaporta': 'Kaporta',
+          'elektrik': 'Elektrik',
+          'lastik': 'Lastik',
+          'bakim': 'Bakım'
+        };
+        
         for (const category of categories) {
+          const dbCategory = categoryMap[category.toLowerCase()] || category;
           await pool.query(
             'INSERT INTO shop_categories (shop_id, category) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [shopId, category]
+            [shopId, dbCategory]
           );
         }
       }
