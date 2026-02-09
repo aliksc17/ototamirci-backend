@@ -16,8 +16,8 @@ export const getNearbyShops = async (req: AuthRequest, res: Response) => {
     // Haversine formula to calculate distance and find nearby shops
     let query = `
       SELECT 
-        s.id, s.name, s.latitude, s.longitude, s.address, 
-        s.phone, s.image_url, s.rating, s.is_open,
+        s.id, s.owner_id, s.name, s.latitude, s.longitude, s.address, 
+        s.phone, s.phone_visible, s.image_url, s.rating, s.is_open, s.working_hours,
         array_agg(DISTINCT sc.category) FILTER (WHERE sc.category IS NOT NULL) as categories,
         (
           6371 * acos(

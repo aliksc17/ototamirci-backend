@@ -19,7 +19,8 @@ export const register = async (req: Request, res: Response) => {
       latitude,
       longitude,
       categories,
-      working_hours
+      working_hours,
+      is_open = true
     } = req.body;
 
     // Check if user already exists
@@ -52,9 +53,9 @@ export const register = async (req: Request, res: Response) => {
     if (role === 'mechanic' && shop_name && address && latitude && longitude) {
       const shopResult = await pool.query(
         `INSERT INTO shops (owner_id, name, latitude, longitude, address, phone, working_hours, rating, is_open)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 0.0, true)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 0.0, $8)
          RETURNING id`,
-        [user.id, shop_name, latitude, longitude, address, phone, working_hours ? JSON.stringify(working_hours) : null]
+        [user.id, shop_name, latitude, longitude, address, phone, working_hours ? JSON.stringify(working_hours) : null, is_open]
       );
 
       const shopId = shopResult.rows[0].id;
