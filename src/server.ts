@@ -12,11 +12,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS Origins
-const allowedOrigins = [
+const allowedOrigins: string[] = [
   'http://localhost:3000',
   'http://localhost:5173',
   process.env.FRONTEND_URL,
-].filter(Boolean);
+].filter((origin): origin is string => Boolean(origin));
 
 // Middleware
 app.use(cors({
