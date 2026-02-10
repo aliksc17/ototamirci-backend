@@ -3,12 +3,16 @@ import { body } from 'express-validator';
 import * as authController from '../controllers/authController';
 import { authenticateToken } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
+import { registerLimiter, loginLimiter } from '../middlewares/rateLimiter';
+import { verifyCaptcha } from '../middlewares/captcha.middleware';
 
 const router = Router();
 
 // Register
 router.post(
   '/register',
+  registerLimiter,
+  verifyCaptcha,
   validate([
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Valid email is required'),
@@ -32,6 +36,7 @@ router.post(
 // Login
 router.post(
   '/login',
+  loginLimiter,
   validate([
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
